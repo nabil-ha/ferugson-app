@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "16216790793",
+    "project_id": "ferugson-2dacc",
+    "storage_bucket": "ferugson-2dacc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:16216790793:android:f1bd9babce0d9eb2fe25d8",
+        "android_client_info": {
+          "package_name": "com.example.ferugson"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCtdsk1H0G9xhudaQMWgLEGSIZZx7z51HI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
