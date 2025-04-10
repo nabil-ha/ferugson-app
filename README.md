@@ -13,3 +13,9 @@ Core Features:
 5. Performance Tracking: Monitors key performance indicators such as speed, stamina, accuracy, and tactical ratings, with data visualization through radar charts and trend analysis over time.​
 
 6. Session Management: Allows for the creation and management of training sessions, tracking of player attendance, session confirmations, and focus area definitions to optimize training outcomes.
+
+
+To run the project:
+1. Download & install flutter sdk & all relevant apps (vs code, android studio, android sdk tools)
+2. Run: flutter pub get
+3. Run: flutter run
