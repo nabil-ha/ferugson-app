@@ -172,17 +172,6 @@ with torch.no_grad():
 
 print(f"Test Accuracy: {100 * correct / total:.2f}%")
 
-class ammar():
-  def __init__(self):
-    return
-
-  def say_hello(self):
-    print("Hello")
-
-!pip install ammar
-import ammar
-
-ammar.say_hell
 
 # Collect all predictions and true labels
 all_preds = []
