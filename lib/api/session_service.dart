@@ -104,11 +104,11 @@ class SessionService {
   }
 
   // Get upcoming sessions for a coach
-  Future<List<Session>> getUpcomingSessionsForCoach(String coachId) async {
+  Future<List<Session>> getUpcomingSessionsForCoach() async {
     try {
       final now = DateTime.now();
       final snapshot = await _firebaseService.sessionsCollection
-          .where('coachId', isEqualTo: coachId)
+          // .where('coachId', isEqualTo: coachId)
           .where('dateTime', isGreaterThanOrEqualTo: now.toIso8601String())
           .orderBy('dateTime')
           .get();

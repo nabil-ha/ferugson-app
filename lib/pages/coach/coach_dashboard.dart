@@ -1,4 +1,5 @@
 import 'package:ferugson/pages/coach/session_details_page.dart';
+import 'package:ferugson/pages/coach/sessions_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,7 @@ import 'create_player_page.dart';
 import 'rate_performance_page.dart';
 import 'ai_insights_page.dart';
 import '../../main.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class CoachDashboard extends StatefulWidget {
   final VoidCallback onSwitchToAI;
@@ -57,8 +59,7 @@ class _CoachDashboardState extends State<CoachDashboard> {
       _coach = user;
 
       // Load all sessions for the coach
-      final sessions =
-          await sessionService.getUpcomingSessionsForCoach(_coach!.id);
+      final sessions = await sessionService.getUpcomingSessionsForCoach();
 
       // Sort sessions by date (newest first)
       sessions.sort((a, b) => b.dateTime.compareTo(a.dateTime));
@@ -132,18 +133,21 @@ class _CoachDashboardState extends State<CoachDashboard> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Hello,',
-                style: TextStyle(
+                style: GoogleFonts.montserrat(
                   fontSize: 16,
                   fontWeight: FontWeight.normal,
+                  color: Colors.white70,
                 ),
               ),
               Text(
                 _coach?.name ?? 'Coach',
-                style: const TextStyle(
-                  fontSize: 24,
+                style: GoogleFonts.oswald(
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  color: Colors.white,
                 ),
               ),
             ],
@@ -257,28 +261,26 @@ class _CoachDashboardState extends State<CoachDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Upcoming Training Sessions',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  // TODO: Navigate to all sessions page
-                },
-                child: const Text('View All'),
-              ),
-            ],
+          Text(
+            'UPCOMING SESSIONS',
+            style: GoogleFonts.oswald(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
           ),
           const SizedBox(height: 16),
+
+          // Sessions cards
           _sessions.isEmpty
-              ? const Center(
-                  child: Text('No upcoming sessions'),
+              ? Center(
+                  child: Text(
+                    'No upcoming sessions',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
                 )
               : ListView.builder(
                   shrinkWrap: true,
@@ -296,117 +298,131 @@ class _CoachDashboardState extends State<CoachDashboard> {
                           )
                           .then((_) => _loadDashboardData()),
                       borderRadius: BorderRadius.circular(12),
-                      child: Card(
+                      child: Container(
                         margin: const EdgeInsets.only(bottom: 12),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              session.type == SessionType.training
+                                  ? Color(0xFF1E1E1E)
+                                  : Color(0xFF290000),
+                              session.type == SessionType.training
+                                  ? Color(0xFF2A2A2A)
+                                  : Color(0xFF3D0101),
+                            ],
+                          ),
                           borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              offset: Offset(0, 2),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
                             children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    session.type == SessionType.training
-                                        ? Icons.fitness_center
-                                        : Icons.sports_soccer,
-                                    color: Colors.blue,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
+                              Container(
+                                padding: EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: session.type == SessionType.training
+                                      ? Color(0xFFC70101).withOpacity(0.2)
+                                      : Color(0xFFC70101).withOpacity(0.3),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  session.type == SessionType.training
+                                      ? Icons.fitness_center
+                                      : Icons.sports_soccer,
+                                  color: Color(0xFFC70101),
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
                                       session.title,
-                                      style: const TextStyle(
+                                      style: GoogleFonts.oswald(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  const Icon(Icons.access_time,
-                                      size: 16, color: Colors.grey),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    DateFormat('EEE, MMM d, yyyy • h:mm a')
-                                        .format(session.dateTime),
-                                    style: const TextStyle(color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Icon(Icons.location_on,
-                                      size: 16, color: Colors.grey),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    session.location,
-                                    style: const TextStyle(color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Icon(Icons.flag,
-                                      size: 16, color: Colors.grey),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    session.type == SessionType.training
-                                        ? session.trainingFocus
-                                            .toString()
-                                            .split('.')
-                                            .last
-                                        : 'Match vs ${session.opponentTeam}',
-                                    style: const TextStyle(color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Icon(Icons.people,
-                                      size: 16, color: Colors.grey),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${session.invitedPlayersIds.length} players',
-                                    style: const TextStyle(color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-
-                              // Add Rate Performance button if the session is in the past
-                              if (session.dateTime
-                                  .isBefore(DateTime.now())) ...[
-                                const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    TextButton.icon(
-                                      icon: const Icon(Icons.rate_review,
-                                          size: 16),
-                                      label: const Text('Rate Performance'),
-                                      onPressed: () => Navigator.of(context)
-                                          .push(
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  RatePerformancePage(
-                                                sessionId: session.id,
-                                              ),
-                                            ),
-                                          )
-                                          .then((_) => _loadDashboardData()),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.calendar_today,
+                                          size: 14,
+                                          color: Colors.white70,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          _formatDate(session.dateTime),
+                                          style: GoogleFonts.montserrat(
+                                            color: Colors.white70,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.people,
+                                          size: 14,
+                                          color: Colors.white70,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '${session.invitedPlayersIds.length} Players',
+                                          style: GoogleFonts.montserrat(
+                                            color: Colors.white70,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ],
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: session.type == SessionType.training
+                                      ? Colors.blue.withOpacity(0.2)
+                                      : Color(0xFFC70101).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: session.type == SessionType.training
+                                        ? Colors.blue.withOpacity(0.5)
+                                        : Color(0xFFC70101).withOpacity(0.5),
+                                  ),
+                                ),
+                                child: Text(
+                                  session.type == SessionType.training
+                                      ? 'TRAINING'
+                                      : 'MATCH',
+                                  style: GoogleFonts.oswald(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1,
+                                    color: session.type == SessionType.training
+                                        ? Colors.blue
+                                        : Color(0xFFC70101),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -414,112 +430,77 @@ class _CoachDashboardState extends State<CoachDashboard> {
                     );
                   },
                 ),
+
+          // View all sessions button - always show this
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: TextButton(
+              onPressed: () {
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (context) => const SessionsPage(),
+                      ),
+                    )
+                    .then((_) => _loadDashboardData());
+              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'VIEW ALL SESSIONS',
+                    style: GoogleFonts.oswald(
+                      letterSpacing: 1.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFC70101),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward,
+                    size: 16,
+                    color: Color(0xFFC70101),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildQuickStats() {
+    final redColor = Color(0xFFC70101);
+
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Team Performance',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              TextButton(
-                onPressed: widget.onSwitchToAI,
-                child: const Text('More Insights'),
-              ),
-            ],
+          Text(
+            'QUICK STATS',
+            style: GoogleFonts.oswald(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
           ),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  spreadRadius: 1,
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Team stats at top
-                Row(
-                  children: [
-                    _buildStatCard(
-                      Icons.directions_run,
-                      '${_players.length}',
-                      'Active Players',
-                      Colors.blue,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildStatCard(
-                      Icons.event,
-                      '${_sessions.length}',
-                      'Upcoming Sessions',
-                      Colors.green,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildStatCard(
-                      Icons.warning_amber_rounded,
-                      '${_insights.length}',
-                      'Injury Alerts',
-                      Colors.red,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // AI insights preview
-                const Text(
-                  'AI Analysis',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                if (_insights.isEmpty)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.0),
-                      child: Text(
-                        'No injury or fatigue alerts detected',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                  )
-                else
-                  _buildAIAlertsList(),
-
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: widget.onSwitchToAI,
-                  icon: const Icon(Icons.analytics),
-                  label: const Text('Generate AI Insights'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 40),
-                  ),
-                ),
-              ],
-            ),
+          Row(
+            children: [
+              _buildStatCard(Icons.people, _players.length.toString(),
+                  'Players', redColor),
+              const SizedBox(width: 12),
+              _buildStatCard(Icons.sports_soccer, _sessions.length.toString(),
+                  'Sessions', Colors.blue),
+              const SizedBox(width: 12),
+              _buildStatCard(Icons.notifications_active,
+                  _insights.length.toString(), 'Alerts', Colors.amber),
+            ],
           ),
         ],
       ),
@@ -535,6 +516,13 @@ class _CoachDashboardState extends State<CoachDashboard> {
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: color.withOpacity(0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           children: [
@@ -542,17 +530,18 @@ class _CoachDashboardState extends State<CoachDashboard> {
             const SizedBox(height: 8),
             Text(
               value,
-              style: TextStyle(
+              style: GoogleFonts.oswald(
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
-                color: color.withOpacity(.8),
+                color: color.withOpacity(.9),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(
+              style: GoogleFonts.montserrat(
                 fontSize: 12,
+                color: Colors.white70,
               ),
               textAlign: TextAlign.center,
             ),
@@ -750,5 +739,9 @@ class _CoachDashboardState extends State<CoachDashboard> {
         ],
       ),
     );
+  }
+
+  String _formatDate(DateTime dateTime) {
+    return DateFormat('EEE, MMM d, yyyy • h:mm a').format(dateTime);
   }
 }

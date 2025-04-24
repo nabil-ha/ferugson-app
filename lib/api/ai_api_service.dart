@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/models.dart';
 
 class AIApiService {
-  static const String _baseUrl = 'https://scai-ai.onrender.com';
+  static const String _baseUrl = 'https://fatigue-injury.onrender.com';
 
   // Predict injury risk for a player
   Future<bool> predictInjuryRisk(Player player, {int? previousInjuries}) async {
@@ -26,7 +26,8 @@ class AIApiService {
     final int weight = player.weight ?? 75; // Weight in kg
 
     // Use provided previous injuries or fetch from player data
-    final int injuries = previousInjuries ?? player.previousInjuries ?? 0;
+    final int injuries =
+        previousInjuries ?? (player.hasPreviousInjuries == true ? 1 : 0);
 
     try {
       final response = await http.post(

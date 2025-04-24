@@ -8,8 +8,15 @@ import '../../models/models.dart';
 
 class SessionDetailsPage extends StatefulWidget {
   final String sessionId;
-  const SessionDetailsPage({Key? key, required this.sessionId})
-      : super(key: key);
+  final bool showRiskResults;
+  final Map<String, int>? injuryRisks;
+
+  const SessionDetailsPage({
+    Key? key,
+    required this.sessionId,
+    this.showRiskResults = false,
+    this.injuryRisks,
+  }) : super(key: key);
 
   @override
   _SessionDetailsPageState createState() => _SessionDetailsPageState();
@@ -39,14 +46,12 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
       final userService = UserService(firebaseService);
       final performanceService = PerformanceService(firebaseService);
 
-      // Load session details
       final session = await sessionService.getSessionById(widget.sessionId);
       if (session == null) {
         throw Exception('Session not found');
       }
       _session = session;
 
-      // Load player details for all invited players
       final players = <Player>[];
       for (final playerId in _session.invitedPlayersIds) {
         final user = await userService.getUserById(playerId);
@@ -57,9 +62,20 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
 
       _players = players;
 
-      // Load existing performance ratings
       _performances =
           await performanceService.getPerformancesForSession(widget.sessionId);
+
+      if (widget.showRiskResults && widget.injuryRisks != null && mounted) {
+        Future.delayed(Duration.zero, () {
+          _showRiskResultsDialog();
+        });
+      } else if (mounted &&
+          _session.playerInjuryRisks != null &&
+          _session.playerInjuryRisks!.isNotEmpty) {
+        Future.delayed(Duration.zero, () {
+          _showRiskResultsDialog();
+        });
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading session data: ${e.toString()}')),
@@ -81,7 +97,6 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
       ),
     )
         .then((_) {
-      // Refresh the data when returning from the performance rating page
       _loadSessionData();
     });
   }
@@ -110,7 +125,6 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
               ),
             ),
       floatingActionButton: !_isLoading &&
-              // _session.dateTime.isBefore(DateTime.now()) &&
               (_performances.length < _players.length || _performances.isEmpty)
           ? FloatingActionButton.extended(
               onPressed: _navigateToPlayerAnalysis,
@@ -207,77 +221,123 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
   }
 
   Widget _buildPlayersList() {
-    // final confirmedCount = _session.confirmedPlayersIds.length;
-    // final maybeCount = _session.maybePlayersIds.length;
-    // final declinedCount = _session.declinedPlayersIds.length;
-    // final pendingCount = _session.invitedPlayersIds.length -
-    //     (confirmedCount + maybeCount + declinedCount);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Players (${_players.length})',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStatusChip(
-                'Confirmed', _session.invitedPlayersIds.length, Colors.green),
-            // const SizedBox(width: 8),
-            // _buildStatusChip('Maybe', maybeCount, Colors.orange),
-            // const SizedBox(width: 8),
-            // _buildStatusChip('Declined', declinedCount, Colors.red),
-            // if (pendingCount > 0) ...[
-            //   const SizedBox(width: 8),
-            //   _buildStatusChip('Pending', pendingCount.toInt(), Colors.grey),
-            // ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Invited Players (${_players.length})',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (widget.injuryRisks != null)
+                  Tooltip(
+                    message: 'Risk assessment available',
+                    child: Icon(Icons.analytics, color: Colors.blue),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _players.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No players invited to this session',
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _players.length,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final player = _players[index];
+                      final hasPerformance = _performances.any(
+                          (performance) => performance.playerId == player.id);
+                      final riskLevel = widget.injuryRisks != null
+                          ? widget.injuryRisks![player.id]
+                          : null;
+
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage: player.photoUrl != null
+                              ? NetworkImage(player.photoUrl!)
+                              : null,
+                          child: player.photoUrl == null
+                              ? Text(player.name.substring(0, 1))
+                              : null,
+                        ),
+                        title: Text(player.name),
+                        subtitle: Text(
+                          player.position.toString().split('.').last,
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (riskLevel != null) _buildRiskBadge(riskLevel),
+                            if (hasPerformance)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 8.0),
+                                child: Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green,
+                                  size: 20,
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
           ],
         ),
-        const SizedBox(height: 16),
-        Card(
-          elevation: 1,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _players.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final player = _players[index];
-              final status = _getPlayerStatus(player.id);
-
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: player.photoUrl != null
-                      ? NetworkImage(player.photoUrl!)
-                      : null,
-                  backgroundColor: Colors.grey.shade200,
-                  child: player.photoUrl == null
-                      ? Text(player.name.substring(0, 1))
-                      : null,
-                ),
-                title: Text(player.name),
-                subtitle: Text(player.position.toString().split('.').last),
-                trailing: _getStatusIcon(status),
-              );
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildStatusChip(String label, int count, Color color) {
-    return Chip(
-      label: Text('$label: $count'),
-      backgroundColor: color.withOpacity(0.1),
-      labelStyle: TextStyle(color: color),
+  Widget _buildRiskBadge(int riskLevel) {
+    Color color;
+    String tooltip;
+
+    switch (riskLevel) {
+      case 2:
+        color = Colors.red;
+        tooltip = 'High injury risk';
+        break;
+      case 1:
+        color = Colors.orange;
+        tooltip = 'Medium injury risk';
+        break;
+      default:
+        color = Colors.green;
+        tooltip = 'Low injury risk';
+    }
+
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.2),
+          shape: BoxShape.circle,
+          border: Border.all(color: color),
+        ),
+        child: Icon(
+          Icons.warning,
+          color: color,
+          size: 16,
+        ),
+      ),
     );
   }
 
@@ -452,28 +512,111 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
     return total / 4;
   }
 
-  ConfirmationStatus _getPlayerStatus(String playerId) {
-    // if (_session.confirmedPlayersIds.contains(playerId)) {
-    return ConfirmationStatus.confirmed;
-    // } else if (_session.maybePlayersIds.contains(playerId)) {
-    //   return ConfirmationStatus.maybe;
-    // } else if (_session.declinedPlayersIds.contains(playerId)) {
-    //   return ConfirmationStatus.declined;
-    // } else {
-    //   return ConfirmationStatus.pending;
-    // }
+  Future<void> _showRiskResultsDialog() async {
+    if (!mounted) return;
+
+    final Map<String, int> riskData;
+    if (widget.injuryRisks != null && widget.injuryRisks!.isNotEmpty) {
+      riskData = widget.injuryRisks!;
+    } else if (_session.playerInjuryRisks != null &&
+        _session.playerInjuryRisks!.isNotEmpty) {
+      riskData = _session.playerInjuryRisks!;
+    } else {
+      return;
+    }
+
+    int highRisk = 0;
+    int mediumRisk = 0;
+    int lowRisk = 0;
+
+    riskData.forEach((_, risk) {
+      if (risk == 2)
+        highRisk++;
+      else if (risk == 1)
+        mediumRisk++;
+      else
+        lowRisk++;
+    });
+
+    final playerNames = <String, String>{};
+    for (final player in _players) {
+      if (riskData.containsKey(player.id)) {
+        playerNames[player.id] = player.name;
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('AI Risk Assessment'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Session risk analysis complete:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            _buildRiskSummary(highRisk, mediumRisk, lowRisk),
+            SizedBox(height: 16),
+            Text('Players are marked with risk indicators in the player list.'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _getStatusIcon(ConfirmationStatus status) {
-    switch (status) {
-      case ConfirmationStatus.confirmed:
-        return const Icon(Icons.check_circle, color: Colors.green);
-      // case ConfirmationStatus.maybe:
-      //   return const Icon(Icons.help, color: Colors.orange);
-      case ConfirmationStatus.declined:
-        return const Icon(Icons.cancel, color: Colors.red);
-      case ConfirmationStatus.pending:
-        return Icon(Icons.schedule, color: Colors.grey.shade400);
-    }
+  Widget _buildRiskSummary(int highRisk, int mediumRisk, int lowRisk) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildRiskIndicator('High', highRisk, Colors.red),
+        _buildRiskIndicator('Medium', mediumRisk, Colors.orange),
+        _buildRiskIndicator('Low', lowRisk, Colors.green),
+      ],
+    );
+  }
+
+  Widget _buildRiskIndicator(String label, int count, Color color) {
+    return Column(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            shape: BoxShape.circle,
+            border: Border.all(color: color),
+          ),
+          child: Center(
+            child: Text(
+              count.toString(),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: color,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 12)),
+      ],
+    );
   }
 }

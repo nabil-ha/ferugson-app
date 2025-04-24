@@ -24,10 +24,12 @@ class Session {
   final List<String> invitedPlayersIds;
   final Map<String, ConfirmationStatus> confirmationStatus;
   final TrainingFocus? trainingFocus;
+  final int intensity;
   final String? opponentTeam;
   final String? coachComments;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final Map<String, int>? playerInjuryRisks;
 
   Session({
     String? id,
@@ -39,8 +41,10 @@ class Session {
     required this.invitedPlayersIds,
     Map<String, ConfirmationStatus>? confirmationStatus,
     this.trainingFocus,
+    this.intensity = 5,
     this.opponentTeam,
     this.coachComments,
+    this.playerInjuryRisks,
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : id = id ?? const Uuid().v4(),
@@ -80,8 +84,12 @@ class Session {
               orElse: () => TrainingFocus.mixed,
             )
           : null,
+      intensity: json['intensity'] != null ? json['intensity'] as int : 5,
       opponentTeam: json['opponentTeam'],
       coachComments: json['coachComments'],
+      playerInjuryRisks: json['playerInjuryRisks'] != null
+          ? Map<String, int>.from(json['playerInjuryRisks'])
+          : null,
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
     );
@@ -99,6 +107,7 @@ class Session {
       'confirmationStatus': confirmationStatus.map(
         (key, value) => MapEntry(key, value.toString().split('.').last),
       ),
+      'intensity': intensity,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -115,6 +124,10 @@ class Session {
       data['coachComments'] = coachComments;
     }
 
+    if (playerInjuryRisks != null) {
+      data['playerInjuryRisks'] = playerInjuryRisks;
+    }
+
     return data;
   }
 
@@ -128,8 +141,10 @@ class Session {
     List<String>? invitedPlayersIds,
     Map<String, ConfirmationStatus>? confirmationStatus,
     TrainingFocus? trainingFocus,
+    int? intensity,
     String? opponentTeam,
     String? coachComments,
+    Map<String, int>? playerInjuryRisks,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -143,8 +158,10 @@ class Session {
       invitedPlayersIds: invitedPlayersIds ?? this.invitedPlayersIds,
       confirmationStatus: confirmationStatus ?? this.confirmationStatus,
       trainingFocus: trainingFocus ?? this.trainingFocus,
+      intensity: intensity ?? this.intensity,
       opponentTeam: opponentTeam ?? this.opponentTeam,
       coachComments: coachComments ?? this.coachComments,
+      playerInjuryRisks: playerInjuryRisks ?? this.playerInjuryRisks,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

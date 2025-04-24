@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../api/services.dart';
 import '../../models/models.dart';
+import 'session_details_page.dart';
 
 class CreateSessionPage extends StatefulWidget {
   final VoidCallback onSessionCreated;
@@ -26,6 +27,7 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
   TimeOfDay _selectedTime = TimeOfDay.now();
   SessionType _sessionType = SessionType.training;
   TrainingFocus? _trainingFocus = TrainingFocus.mixed;
+  int _intensity = 5;
   String? _opponentTeam;
 
   List<Player> _availablePlayers = [];
@@ -33,6 +35,7 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
 
   bool _isLoading = false;
   bool _isLoadingPlayers = true;
+  bool _processingAI = false;
   String? _errorMessage;
 
   @override
@@ -101,6 +104,33 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
     }
   }
 
+  Future<Map<String, int>> _processInjuryRisks(Session session) async {
+    setState(() {
+      _processingAI = true;
+    });
+
+    try {
+      final firebaseService =
+          Provider.of<FirebaseService>(context, listen: false);
+      final aiService = AIService(firebaseService);
+
+      final risks = await aiService.processSessionInjuryRisks(session);
+
+      await aiService.storeInjuryInsights(session, risks);
+
+      return risks;
+    } catch (e) {
+      print('Error processing injury risks: $e');
+      return {};
+    } finally {
+      if (mounted) {
+        setState(() {
+          _processingAI = false;
+        });
+      }
+    }
+  }
+
   Future<void> _createSession() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedPlayers.isEmpty) {
@@ -121,13 +151,11 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
       final userService = UserService(firebaseService);
       final sessionService = SessionService(firebaseService);
 
-      // Get current user (coach)
       final user = await userService.getCurrentUser();
       if (user is! Coach) {
         throw Exception('Only coaches can create sessions');
       }
 
-      // Create session datetime
       final sessionDateTime = DateTime(
         _selectedDate.year,
         _selectedDate.month,
@@ -136,7 +164,6 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
         _selectedTime.minute,
       );
 
-      // Create session
       final session = Session(
         title: _titleController.text.trim(),
         type: _sessionType,
@@ -146,31 +173,168 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
         invitedPlayersIds: _selectedPlayers,
         trainingFocus:
             _sessionType == SessionType.training ? _trainingFocus : null,
+        intensity: _intensity,
         opponentTeam: _sessionType == SessionType.match ? _opponentTeam : null,
         coachComments: _commentsController.text.trim(),
       );
 
-      await sessionService.createSession(session);
+      final sessionId = await sessionService.createSession(session);
 
-      // Return to homepage on success
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Session created successfully')),
         );
-        widget.onSessionCreated();
-        Navigator.of(context).pop();
+
+        _processRisksAndNavigate(session.copyWith(id: sessionId));
       }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
       });
-    } finally {
+
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
     }
+  }
+
+  Future<void> _processRisksAndNavigate(Session session) async {
+    try {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SessionDetailsPage(
+              sessionId: session.id,
+            ),
+          ),
+        );
+      }
+
+      final firebaseService =
+          Provider.of<FirebaseService>(context, listen: false);
+      final sessionService = SessionService(firebaseService);
+      final aiService = AIService(firebaseService);
+
+      final injuryRisks = await _processInjuryRisks(session);
+
+      if (injuryRisks.isNotEmpty) {
+        await sessionService.updateSession(
+          session.copyWith(
+            playerInjuryRisks: injuryRisks,
+          ),
+        );
+
+        await aiService.storeInjuryInsights(session, injuryRisks);
+      }
+    } catch (e) {
+      print('Error processing injury risks: $e');
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showInjuryRiskResults(
+      List<AIInsight> insights, Map<String, String> playerNames) async {
+    if (!mounted) return;
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Injury Risk Assessment'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: [
+                Text(
+                  'AI analysis identified potential injury risks for ${insights.length} player(s):',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                ...insights.map((insight) {
+                  final playerName =
+                      playerNames[insight.playerId] ?? 'Unknown Player';
+                  final riskLevel = insight.riskLevel ?? RiskLevel.low;
+
+                  Color riskColor;
+                  switch (riskLevel) {
+                    case RiskLevel.moderate:
+                      riskColor = Colors.orange;
+                      break;
+                    case RiskLevel.high:
+                      riskColor = Colors.red;
+                      break;
+                    case RiskLevel.critical:
+                      riskColor = Colors.purple;
+                      break;
+                    default:
+                      riskColor = Colors.green;
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: riskColor.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.person, color: riskColor, size: 20),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                playerName,
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(height: 4),
+                              Text(insight.title),
+                              SizedBox(height: 4),
+                              Text(
+                                insight.description,
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey[600]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('CLOSE'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -184,13 +348,21 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
         foregroundColor: Colors.white,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Creating session...'),
+                ],
+              ),
+            )
           : Form(
               key: _formKey,
               child: ListView(
                 padding: const EdgeInsets.all(16.0),
                 children: [
-                  // Session Type Selection
                   Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -234,10 +406,74 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Title, Date, Time, Location
+                  if (_sessionType == SessionType.training)
+                    Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Training Intensity',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const Text('Low',
+                                    style: TextStyle(fontSize: 12)),
+                                Expanded(
+                                  child: Slider(
+                                    value: _intensity.toDouble(),
+                                    min: 0,
+                                    max: 10,
+                                    divisions: 10,
+                                    label: _intensity.toString(),
+                                    onChanged: (double value) {
+                                      setState(() {
+                                        _intensity = value.toInt();
+                                      });
+                                    },
+                                  ),
+                                ),
+                                const Text('High',
+                                    style: TextStyle(fontSize: 12)),
+                              ],
+                            ),
+                            Text(
+                              'Intensity Level: $_intensity/10',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: _intensity > 7
+                                    ? Colors.red
+                                    : _intensity > 4
+                                        ? Colors.orange
+                                        : Colors.green,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Note: Higher intensity may increase injury risk for some players.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
                   Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -256,7 +492,6 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // Title
                           Row(
                             children: [
                               const Icon(Icons.title, color: Colors.blue),
@@ -279,7 +514,6 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          // Date & Time
                           Row(
                             children: [
                               const Icon(Icons.access_time, color: Colors.blue),
@@ -317,7 +551,6 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          // Location
                           Row(
                             children: [
                               const Icon(Icons.location_on, color: Colors.blue),
@@ -343,10 +576,7 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Type-specific details
                   if (_sessionType == SessionType.training)
                     Card(
                       shape: RoundedRectangleBorder(
@@ -397,7 +627,6 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                         ),
                       ),
                     ),
-
                   if (_sessionType == SessionType.match)
                     Card(
                       shape: RoundedRectangleBorder(
@@ -449,10 +678,7 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                         ),
                       ),
                     ),
-
                   const SizedBox(height: 16),
-
-                  // Players selection
                   Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -562,10 +788,7 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Coach's comments
                   Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -604,7 +827,6 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                       ),
                     ),
                   ),
-
                   if (_errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 16),
@@ -615,9 +837,7 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-
                   const SizedBox(height: 24),
-
                   ElevatedButton(
                     onPressed: _createSession,
                     style: ElevatedButton.styleFrom(

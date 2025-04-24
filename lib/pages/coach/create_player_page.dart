@@ -22,7 +22,7 @@ class _CreatePlayerPageState extends State<CreatePlayerPage> {
   // Physical attributes for AI predictions
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
-  final _previousInjuriesController = TextEditingController();
+  bool _hasPreviousInjuries = false;
   DateTime? _selectedBirthdate;
 
   bool _isLoading = false;
@@ -33,7 +33,6 @@ class _CreatePlayerPageState extends State<CreatePlayerPage> {
     _emailController.dispose();
     _heightController.dispose();
     _weightController.dispose();
-    _previousInjuriesController.dispose();
     super.dispose();
   }
 
@@ -101,10 +100,6 @@ class _CreatePlayerPageState extends State<CreatePlayerPage> {
             ? int.tryParse(_weightController.text)
             : null;
 
-        int? previousInjuries = _previousInjuriesController.text.isNotEmpty
-            ? int.tryParse(_previousInjuriesController.text)
-            : null;
-
         // Create player with physical attributes for AI predictions
         await userService.createPlayer(
           _nameController.text,
@@ -114,7 +109,7 @@ class _CreatePlayerPageState extends State<CreatePlayerPage> {
           birthdate: _selectedBirthdate,
           height: height,
           weight: weight,
-          previousInjuries: previousInjuries,
+          hasPreviousInjuries: _hasPreviousInjuries,
         );
 
         if (mounted) {
@@ -265,15 +260,36 @@ class _CreatePlayerPageState extends State<CreatePlayerPage> {
                     const SizedBox(height: 16),
 
                     // Previous injuries field
-                    TextFormField(
-                      controller: _previousInjuriesController,
-                      decoration: const InputDecoration(
-                        labelText: 'Previous Injuries Count',
-                        border: OutlineInputBorder(),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Previous Injuries',
+                            style: TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        Switch(
+                          value: _hasPreviousInjuries,
+                          onChanged: (bool value) {
+                            setState(() {
+                              _hasPreviousInjuries = value;
+                            });
+                          },
+                          activeColor: Colors.red,
+                        ),
+                      ],
+                    ),
+                    Text(
+                      _hasPreviousInjuries
+                          ? 'Player has previous injury history'
+                          : 'No previous injuries reported',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _hasPreviousInjuries ? Colors.red : Colors.green,
+                        fontStyle: FontStyle.italic,
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) =>
-                          _validateNumber(value, 'Previous injuries'),
                     ),
 
                     const SizedBox(height: 32),

@@ -139,7 +139,7 @@ class UserService {
     DateTime? birthdate,
     int? height,
     int? weight,
-    int? previousInjuries,
+    bool hasPreviousInjuries = false,
   }) async {
     try {
       // Create Firebase auth user first
@@ -163,7 +163,7 @@ class UserService {
         birthdate: birthdate,
         height: height,
         weight: weight,
-        previousInjuries: previousInjuries,
+        hasPreviousInjuries: hasPreviousInjuries,
       );
 
       await _firebaseService.usersCollection.doc(userId).set(player.toJson());

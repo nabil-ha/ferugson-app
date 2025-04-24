@@ -3,6 +3,7 @@ import 'package:ferugson/pages/coach/coach_dashboard.dart';
 import 'package:ferugson/pages/player/player_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../api/services.dart';
 import '../../models/models.dart';
 
@@ -85,8 +86,13 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final primaryColor = Color(0xFFC70101); // Rich red
+    final accentColor = Color(0xFFFFFFFF); // White
+    final backgroundColor = Color(0xFF121212); // Dark background
+    final surfaceColor = Color(0xFF1E1E1E); // Slightly lighter surface
 
     return Scaffold(
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Form(
@@ -108,13 +114,14 @@ class _LoginPageState extends State<LoginPage> {
                   ),
 
                   // Welcome text
-                  const Center(
+                  Center(
                     child: Text(
                       'WELCOME BACK!',
-                      style: TextStyle(
-                        fontSize: 24,
+                      style: GoogleFonts.oswald(
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
+                        letterSpacing: 2.0,
+                        color: accentColor,
                       ),
                     ),
                   ),
@@ -125,18 +132,29 @@ class _LoginPageState extends State<LoginPage> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
+                    style: TextStyle(color: accentColor),
                     decoration: InputDecoration(
                       labelText: 'Email',
                       labelStyle: TextStyle(
-                        color: Colors.grey.shade500,
+                        color: accentColor.withOpacity(0.7),
                       ),
                       filled: true,
-                      fillColor: Colors.blue.shade50,
+                      fillColor: surfaceColor,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: primaryColor),
                       ),
-                      prefixIcon: const Icon(Icons.email_outlined),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            BorderSide(color: primaryColor.withOpacity(0.5)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                      prefixIcon:
+                          Icon(Icons.email_outlined, color: primaryColor),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -155,18 +173,28 @@ class _LoginPageState extends State<LoginPage> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
+                    style: TextStyle(color: accentColor),
                     decoration: InputDecoration(
                       labelText: 'Password',
                       labelStyle: TextStyle(
-                        color: Colors.grey.shade500,
+                        color: accentColor.withOpacity(0.7),
                       ),
                       filled: true,
-                      fillColor: Colors.blue.shade50,
+                      fillColor: surfaceColor,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: primaryColor),
                       ),
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            BorderSide(color: primaryColor.withOpacity(0.5)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                      prefixIcon: Icon(Icons.lock_outline, color: primaryColor),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -182,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: Text(
                         _errorMessage!,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+                          color: Colors.redAccent,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -194,10 +222,10 @@ class _LoginPageState extends State<LoginPage> {
                   ElevatedButton(
                     onPressed: _isLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
+                      backgroundColor: primaryColor,
+                      foregroundColor: accentColor,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
@@ -210,12 +238,12 @@ class _LoginPageState extends State<LoginPage> {
                               strokeWidth: 2.0,
                             ),
                           )
-                        : const Text(
-                            'GOO',
-                            style: TextStyle(
+                        : Text(
+                            'SIGN IN',
+                            style: GoogleFonts.oswald(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
+                              letterSpacing: 2.0,
                             ),
                           ),
                   ),

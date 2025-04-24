@@ -32,6 +32,10 @@ target 'Runner' do
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  
+  # Add specific version requirement for Google Maps
+  pod 'GoogleMaps', '~> 8.4'
+  
   target 'RunnerTests' do
     inherit! :search_paths
   end
@@ -40,6 +44,25 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+      
+      # Fix DT_TOOLCHAIN_DIR error
+      if target.name == 'Firebase'
+        config.build_settings['LIBRARY_SEARCH_PATHS'] = '$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)'
+      end
+    end
+    
+    # Fix run script warnings for gRPC and BoringSSL
+    if ['gRPC-Core', 'BoringSSL-GRPC'].include?(target.name)
+      target.build_phases.each do |build_phase|
+        if build_phase.respond_to?(:name) && build_phase.name == 'Create Symlinks to Header Folders'
+          build_phase.input_paths = ['$(PODS_ROOT)/Headers/Public']
+          build_phase.output_paths = ['$(DERIVED_FILE_DIR)/$(PRODUCT_MODULE_NAME)-umbrella.h']
+        end
+      end
+    end
+    
     if target.name == 'BoringSSL-GRPC'
       target.source_build_phase.files.each do |file|
         if file.settings && file.settings['COMPILER_FLAGS']

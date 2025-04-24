@@ -186,7 +186,7 @@ class Player extends User {
   final DateTime? birthdate;
   final int? height; // in cm
   final int? weight; // in kg
-  final int? previousInjuries;
+  final bool hasPreviousInjuries;
 
   Player({
     required super.id,
@@ -202,7 +202,7 @@ class Player extends User {
     this.birthdate,
     this.height,
     this.weight,
-    this.previousInjuries,
+    this.hasPreviousInjuries = false,
   }) : super(role: UserRole.player);
 
   factory Player.fromJson(Map<String, dynamic> json) {
@@ -236,7 +236,7 @@ class Player extends User {
               : null),
       height: json['height'],
       weight: json['weight'],
-      previousInjuries: json['previousInjuries'],
+      hasPreviousInjuries: json['hasPreviousInjuries'] ?? false,
     );
   }
 
@@ -248,22 +248,30 @@ class Player extends User {
       'upcomingSessions': upcomingSessions,
       'fatigueStatus': fatigueStatus,
       'personalPerformanceTrends': personalPerformanceTrends,
+      'hasPreviousInjuries': hasPreviousInjuries,
     });
 
     if (birthdate != null) {
       data['birthdate'] = birthdate!.toIso8601String();
     }
+
     if (height != null) {
       data['height'] = height;
     }
+
     if (weight != null) {
       data['weight'] = weight;
     }
-    if (previousInjuries != null) {
-      data['previousInjuries'] = previousInjuries;
-    }
 
     return data;
+  }
+
+  double? get bmi {
+    if (height != null && weight != null && height! > 0) {
+      final heightInMeters = height! / 100;
+      return weight! / (heightInMeters * heightInMeters);
+    }
+    return null;
   }
 
   Player playerCopyWith({
@@ -280,7 +288,7 @@ class Player extends User {
     DateTime? birthdate,
     int? height,
     int? weight,
-    int? previousInjuries,
+    bool? hasPreviousInjuries,
   }) {
     return Player(
       id: id ?? this.id,
@@ -297,7 +305,7 @@ class Player extends User {
       birthdate: birthdate ?? this.birthdate,
       height: height ?? this.height,
       weight: weight ?? this.weight,
-      previousInjuries: previousInjuries ?? this.previousInjuries,
+      hasPreviousInjuries: hasPreviousInjuries ?? this.hasPreviousInjuries,
     );
   }
 
@@ -325,7 +333,7 @@ class Player extends User {
       birthdate: birthdate,
       height: height,
       weight: weight,
-      previousInjuries: previousInjuries,
+      hasPreviousInjuries: hasPreviousInjuries,
     );
   }
 }
