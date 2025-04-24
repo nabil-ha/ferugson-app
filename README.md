@@ -14,6 +14,16 @@ Core Features:
 
 6. Session Management: Allows for the creation and management of training sessions, tracking of player attendance, session confirmations, and focus area definitions to optimize training outcomes.
 
+## AI Models
+
+The app uses custom-trained AI models for injury risk prediction and fatigue assessment:
+
+- **Fatigue Prediction Model**: [Google Colab Notebook](https://colab.research.google.com/drive/1T7PRnqKypQA2D1axY5GHappG0SVoPIUk?usp=sharing)
+- **Injury Risk Prediction Model**: [Google Colab Notebook](https://colab.research.google.com/drive/1ZK9g-afMaM8ryim5TeSr3c1MIWi49sT1?usp=sharing)
+
+These models provide the underlying intelligence for the AI insights and risk assessments shown in the app.
+
+## Getting Started
 
 To run the project:
 1. Download & install flutter sdk & all relevant apps (vs code, android studio, android sdk tools)
