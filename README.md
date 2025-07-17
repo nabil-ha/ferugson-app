@@ -1,6 +1,9 @@
 Freguson is a comprehensive platform designed to enhance the management and performance of sports teams through advanced technology. It caters to two primary user roles: Coaches and Players, offering tailored functionalities for each.​
+
+
 This project was ✨ Vibe Coded ✨.
-Core Features:
+
+**Core Features:**
 
 1. Authentication & User Management: Facilitates user registration and login with role-based access control, ensuring secure and personalized experiences for Coaches and Players.​
 
