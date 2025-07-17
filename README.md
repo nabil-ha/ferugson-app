@@ -1,5 +1,5 @@
 Freguson is a comprehensive platform designed to enhance the management and performance of sports teams through advanced technology. It caters to two primary user roles: Coaches and Players, offering tailored functionalities for each.​
-
+This project was ✨ Vibe Coded ✨.
 Core Features:
 
 1. Authentication & User Management: Facilitates user registration and login with role-based access control, ensuring secure and personalized experiences for Coaches and Players.​
@@ -29,3 +29,7 @@ To run the project:
 1. Download & install flutter sdk & all relevant apps (vs code, android studio, android sdk tools)
 2. Run: flutter pub get
 3. Run: flutter run
+
+
+**To check the Demo**
+https://drive.google.com/file/d/1_I04JgXo7EohxkGjhX0ljExCNNFXw_2P/view?usp=sharing
